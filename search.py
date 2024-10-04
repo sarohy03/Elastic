@@ -1,4 +1,5 @@
 from elasticsearch import Elasticsearch
+from ebooklib import epub
 
 # Elastic configuration.
 ELASTIC_ADDRESS = "http://localhost:9200"
