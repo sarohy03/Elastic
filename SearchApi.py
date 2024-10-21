@@ -157,7 +157,10 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
         #         "result":
         #     })
         # Get the list of CVE results
-        cve_results = app_results["results"].get("results", [])
+        cve_results = app_results["results"]
+        print(type(cve_results))
+        if isinstance(cve_results, dict):
+            print(cve_results.keys)
         extracted_data = []
 
         for item in cve_results:
