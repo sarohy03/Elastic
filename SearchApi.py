@@ -156,8 +156,31 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
         #         "version": application.version,
         #         "result":
         #     })
+        # Get the list of CVE results
+        cve_results = app_results["results"].get("results", [])
+        extracted_data = []
 
-        return {"results": app_results}
+        for item in cve_results:
+            # Access the CVE object
+            cve = item.get("cve", {})
+            cve_id = cve.get("id", "Unknown ID")
+
+            # Find the English description
+            descriptions = cve.get("descriptions", [])
+            en_description = next((desc["value"] for desc in descriptions if desc["lang"] == "en"),
+                                  "No English description available")
+
+            # Collect the extracted data
+            extracted_data.append({
+                "app": application.app,
+                "version": application.version,
+                "id": cve_id,
+                "description": en_description
+            })
+
+        # return extracted_data
+
+        return {"results": extracted_data}
 
 app = FastAPI()
 
