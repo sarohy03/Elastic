@@ -1,68 +1,170 @@
-
 from fastapi import FastAPI
 from elasticsearch import Elasticsearch
 from pydantic import BaseModel
-# from getting_data import search_documents
+from typing import List
+import re
 
-class Data(BaseModel):
+class Application(BaseModel):
     app: str
     version: str
 
+    def extract_app_name(self):
+        # Use a regular expression to match the app name at the beginning
+        match = re.match(r'^([a-zA-Z0-9\s]+)', self.app)
+        if match:
+            return match.group(1).strip()
+        else:
+            return self.app
 
-async def search_documents(es_client, index_name, query_body, values: Data ,size=10):
+    def normalize_version(self):
+        # Removes trailing .0 from the version
+        normalized_version = re.sub(r'(\.0)+$', '', self.version)
+        return normalized_version
+
+class ApplicationsPayload(BaseModel):
+    applications: List[Application]
+
+async def search_documents(es_client, index_name, query_body, size=10):
     response = es_client.search(index=index_name, body=query_body, size=size)
     hits = response['hits']['hits']
 
     results = []
     for hit in hits:
-        # results.append(hit['_source'])
-        val = hit['_source']
-        id = val ['cve']['id']
-        description = val ['cve']['descriptions']
-        doc = {
-            "id": id,
-            "description": description,
-        }
-        results.append(doc)
+        results.append(hit['_source'])
 
     return {
-        "app":values.app,
-        "version":values.version,
         "total": response['hits']['total']['value'],
         "results": results
     }
 
-
-
-
+# async def search_by_field(es_client, index_name, field, applications: List[Application], size=10000):
+#     all_results = []
+#     for application in applications:
+#         app_name = application.extract_app_name()
+#         normalized_version = application.normalize_version()
+#
+#         query_body = {
+#             "query": {
+#                 "bool": {
+#                     "must": [
+#                         {
+#                             "match": {
+#                                 field: {
+#                                     "query": app_name,
+#                                     "operator": "and"
+#                                 }
+#                             }
+#                         },
+#                         {
+#                             "match": {
+#                                 field: {
+#                                     "query": normalized_version,
+#                                     "operator": "and"
+#                                 }
+#                             }
+#                         }
+#                     ]
+#                 }
+#             }
+#         }
+#
+#         app_results = await search_documents(es_client, index_name, query_body, size)
 async def search_by_field(es_client, index_name, field, values: Data, size=10000):
+    app_name = values.extract_app_name()
+    normalized_version = values.normalize_version()
+
+    # Normalize the app name for flexible searching
+    normalized_app_name = app_name.replace(" ", "").lower()  # Removing spaces and lowercasing
+    normalized_app_name_split = normalized_app_name.split("service")  # Split on the word "service"
+
+    # Create a list of flexible search terms
+    flexible_search_terms = [normalized_app_name]  # Start with the normalized app name
+
+    # Add variations: e.g., if "freesshdservice" then add "freesshd"
+    if len(normalized_app_name_split) > 1:
+        flexible_search_terms.append(normalized_app_name_split[0])  # Add the part before "service"
+
+    # Add wildcards for searching
+    wildcard_search = f"*{normalized_app_name}*"
+
     query_body = {
         "query": {
             "bool": {
-                "must": [
+                "should": [
+                    # Match the exact name (case insensitive)
                     {
-                        "match_phrase": {field: values.app}
+                        "match": {
+                            field: {
+                                "query": app_name,
+                                "operator": "and",
+                            }
+                        }
                     },
+                    # Match variations
                     {
-                        "match_phrase": {field: values.version}
+                        "bool": {
+                            "should": [
+                                {
+                                    "wildcard": {
+                                        field: {
+                                            "value": wildcard_search,
+                                            "boost": 2.0  # Boost wildcard matches
+                                        }
+                                    }
+                                },
+                                *[
+                                    {
+                                        "match": {
+                                            field: {
+                                                "query": term,
+                                                "operator": "and",
+                                            }
+                                        }
+                                    } for term in flexible_search_terms
+                                ]
+                            ]
+                        }
                     }
-                ]
+                ],
+                "minimum_should_match": 1
             }
         }
     }
 
-    return await search_documents(es_client, index_name, query_body,values, size)
+    app_results = await search_documents(es_client, index_name, query_body, size)
 
+    extracted_results = []
+    for hit in results["results"]:
+        cve = hit.get('cve')
+        cve_id = cve.get('id')
+        descriptions = cve.get('descriptions', [])
+        # Find the English description
+        en_description = next((desc['value'] for desc in descriptions if desc['lang'] == 'en'), None)
+        if cve_id and en_description:
+            extracted_results.append({
+                "app": application.app,
+                "version": application.version,
+                "ID": cve_id,
+                "description": en_description
+            })
+    # return extracted_results
+    # for result in app_results['results']:
+    #     all_results.append({
+    #         "app": application.app,
+    #         "version": application.version,
+    #         "result":
+    #     })
+
+    return {"results": all_results}
 
 app = FastAPI()
 
-
 @app.post("/search")
-async def root(data: Data):
-    ELASTIC_ADDRESS = "http://localhost:9200"
+async def root(data: ApplicationsPayload):
+    ELASTIC_ADDRESS = "http://localhost:9200"  # Update this to your actual ElasticSearch endpoint
     INDEX_NAME = "interactions_index-6"
     es_client = Elasticsearch(hosts=[ELASTIC_ADDRESS])
 
-    result = await search_by_field(es_client, INDEX_NAME, "cve.descriptions.value", data)
+    result = await search_by_field(es_client, INDEX_NAME, "cve.descriptions.value", data.applications)
 
     return result
