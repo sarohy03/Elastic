@@ -4,7 +4,11 @@ from pydantic import BaseModel
 from typing import List
 import re
 
+<<<<<<< HEAD
 class Application(BaseModel):
+=======
+class Data(BaseModel):
+>>>>>>> 0039b5f (fixed minor elastic search)
     app: str
     version: str
 
@@ -37,6 +41,7 @@ async def search_documents(es_client, index_name, query_body, size=10):
         "results": results
     }
 
+<<<<<<< HEAD
 # async def search_by_field(es_client, index_name, field, applications: List[Application], size=10000):
 #     all_results = []
 #     for application in applications:
@@ -196,6 +201,57 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
 
         if len(normalized_app_name_split) > 1:
             flexible_search_terms.append(normalized_app_name_split[0])  # Add the part before "service"
+=======
+# async def search_by_field(es_client, index_name, field, values: Data, size=10000):
+#     query_body = {
+#         "query": {
+#             "bool": {
+#                 "must": [
+#                     {
+#                         "match_phrase": {field: values.app}
+#                     },
+#                     {
+#                         "match_phrase": {field: values.version}
+#                     }
+#                 ]
+#             }
+#         }
+#     }
+#
+#     return await search_documents(es_client, index_name, query_body, size)
+# async def search_by_field(es_client, index_name, field, values: Data, size=10000):
+#     app_name = values.extract_app_name()
+#     normalized_version = values.normalize_version()
+#
+#     query_body = {
+#         "query": {
+#             "bool": {
+#                 "must": [
+#                     {
+#                         "match": {
+#                             field: {
+#                                 "query": app_name,
+#                                 "operator": "and"
+#                             }
+#                         }
+#                     },
+#                     {
+#                         "match": {
+#                             field: {
+#                                 "query": normalized_version,
+#                                 "operator": "and"
+#                             }
+#                         }
+#                     }
+#                 ]
+#             }
+#         }
+#     }
+#     return await search_documents(es_client, index_name, query_body, size)
+async def search_by_field(es_client, index_name, field, values: Data, size=10000):
+    app_name = values.extract_app_name()
+    normalized_version = values.normalize_version()
+>>>>>>> 0039b5f (fixed minor elastic search)
 
         # Add wildcards for searching
         wildcard_search = f"*{normalized_app_name}*"
@@ -271,11 +327,22 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
 app = FastAPI()
 
 @app.post("/search")
+<<<<<<< HEAD
 async def root(data: ApplicationsPayload):
     ELASTIC_ADDRESS = "http://localhost:9200"  # Update this to your actual ElasticSearch endpoint
+=======
+async def root(data: Data):
+    ELASTIC_ADDRESS = "http://localhost:9200"
+    # ELASTIC_ADDRESS = "https://f923-44-211-168-46.ngrok-free.app"
+>>>>>>> 0039b5f (fixed minor elastic search)
     INDEX_NAME = "interactions_index-6"
     es_client = Elasticsearch(hosts=[ELASTIC_ADDRESS])
 
     result = await search_by_field(es_client, INDEX_NAME, "cve.descriptions.value", data.applications)
 
+<<<<<<< HEAD
     return result
+=======
+    return result
+
+>>>>>>> 0039b5f (fixed minor elastic search)
