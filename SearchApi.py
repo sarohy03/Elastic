@@ -261,12 +261,11 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
 
                 # Append extracted data for the current application
                 all_results.append({
-                    "app": application.app,
-                    "version": application.version,
                     "id": cve_id,
                     "description": en_description
                 })
-
+    from prompt import prompt_cves
+    prompt_cves(applications, all_results)
     return {"results": all_results}  # Return all collected results after processing all applications
 
 app = FastAPI()

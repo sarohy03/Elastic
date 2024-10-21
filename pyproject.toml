@@ -6,11 +6,12 @@ authors = ["mamdoot222 <a.h.sarohy@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.10.12"
 elasticsearch = "^8.15.1"
 fastapi = "^0.115.0"
 uvicorn = "^0.30.6"
 ebooklib = "^0.18"
+openai = "^1.52.0"
 
 
 [build-system]
