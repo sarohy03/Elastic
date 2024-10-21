@@ -135,27 +135,27 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
 
         app_results = await search_documents(es_client, index_name, query_body, size)
 
-        # extracted_results = []
-        # for hit in app_results["results"]:
-        #     cve = hit.get('cve')
-        #     cve_id = cve.get('id')
-        #     descriptions = cve.get('descriptions', [])
-        #     # Find the English description
-        #     en_description = next((desc['value'] for desc in descriptions if desc['lang'] == 'en'), None)
-        #     if cve_id and en_description:
-        #         extracted_results.append({
-        #             "app": application.app,
-        #             "version": application.version,
-        #             "ID": cve_id,
-        #             "description": en_description
-        #         })
+        extracted_results = []
+        for hit in app_results["results"]["results"]:
+            cve = hit.get('cve')
+            cve_id = cve.get('id')
+            descriptions = cve.get('descriptions', [])
+            # Find the English description
+            en_description = next((desc['value'] for desc in descriptions if desc['lang'] == 'en'), None)
+            if cve_id and en_description:
+                extracted_results.append({
+                    "app": application.app,
+                    "version": application.version,
+                    "ID": cve_id,
+                    "description": en_description
+                })
         # # return extracted_results
-        # # for result in app_results['results']:
-        # #     all_results.append({
-        # #         "app": application.app,
-        # #         "version": application.version,
-        # #         "result":
-        # #     })
+        # for result in app_results['results']:
+        #     all_results.append({
+        #         "app": application.app,
+        #         "version": application.version,
+        #         "result":
+        #     })
 
         return {"results": app_results}
 
