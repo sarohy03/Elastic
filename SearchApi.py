@@ -69,7 +69,7 @@ async def search_documents(es_client, index_name, query_body, size=10):
 #         }
 #
 #         app_results = await search_documents(es_client, index_name, query_body, size)
-async def search_by_field(es_client, index_name, field, values: Data, size=10000):
+async def search_by_field(es_client, index_name, field, applications: List[Application], size=10000):
     app_name = values.extract_app_name()
     normalized_version = values.normalize_version()
 
@@ -134,7 +134,7 @@ async def search_by_field(es_client, index_name, field, values: Data, size=10000
     app_results = await search_documents(es_client, index_name, query_body, size)
 
     extracted_results = []
-    for hit in results["results"]:
+    for hit in app_results["results"]:
         cve = hit.get('cve')
         cve_id = cve.get('id')
         descriptions = cve.get('descriptions', [])
