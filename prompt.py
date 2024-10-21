@@ -1,8 +1,7 @@
 import json
 import openai
-
 # Initialize OpenAI API
-openai.api_key = "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"  # Replace with your actual OpenAI API key
+openai.api_key = "OPENAI"  # Replace with your actual OpenAI API key
 def prompt_cves(products, cve_data):
 
     # Combine the products and CVE data into a single prompt
