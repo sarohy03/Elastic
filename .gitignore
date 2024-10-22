@@ -3,3 +3,4 @@ NewData/
 __pycache__/
 .python-version
 .idea/workspace.xml
+.env
