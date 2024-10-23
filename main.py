@@ -115,7 +115,6 @@ app = FastAPI()
 
 @app.post("/search")
 async def root(data: Data):
-
     ELASTIC_ADDRESS = "https://f923-44-211-168-46.ngrok-free.app"
     INDEX_NAME = "interactions_index-7"
     es_client = Elasticsearch(hosts=[ELASTIC_ADDRESS])
