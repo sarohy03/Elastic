@@ -276,7 +276,7 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
         if result["id"] not in seen_ids:
             unique_results.append(result)
             seen_ids.add(result["id"])
-
+    print(f"FINAL RESULTS BEING SENT BACK TO DJANGO ARE {unique_results}")
     return {"results": unique_results}  # Return unique results with application info
 
 app = FastAPI()
