@@ -42,7 +42,7 @@ async def search_documents(es_client, index_name, query_body, size=10):
     }
 
 
-# async def search_by_field(es_client, index_name, field, applications: List[Application], size=10000):
+# async def search_by_field(es_client, index_name, field, applications: List[Application], size=10000, max_results_per_app=5):
 #     all_results = []  # Initialize a list to collect results
 #
 #     # Store a mapping of CVE ID to application information (app name, version)
@@ -114,7 +114,14 @@ async def search_documents(es_client, index_name, query_body, size=10):
 #         # Ensure app_results has results before processing
 #         if "results" in app_results:
 #             cve_results = app_results["results"]
-#             for item in cve_results:
+#
+#             # Sort the CVE results by relevance or any other criterion
+#             sorted_cve_results = sorted(cve_results, key=lambda x: x.get("relevance_score", 0), reverse=True)  # Placeholder for sorting
+#
+#             # Limit to a maximum of `max_results_per_app` per application
+#             limited_cve_results = sorted_cve_results[:max_results_per_app]
+#
+#             for item in limited_cve_results:
 #                 # Access the CVE object
 #                 cve = item.get("cve", {})
 #                 cve_id = cve.get("id", "Unknown ID")
@@ -261,7 +268,16 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
             result["application"] = cve_app_map[cve_id]["application"]
             result["version"] = cve_app_map[cve_id]["version"]
 
-    return {"results": filtered_results}  # Return filtered results with application info
+    # Remove duplicates based on CVE ID
+    unique_results = []
+    seen_ids = set()
+
+    for result in filtered_results:
+        if result["id"] not in seen_ids:
+            unique_results.append(result)
+            seen_ids.add(result["id"])
+
+    return {"results": unique_results}  # Return unique results with application info
 
 app = FastAPI()
 
