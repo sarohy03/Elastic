@@ -154,65 +154,46 @@ async def search_documents(es_client, index_name, query_body, size=10):
 #             result["application"] = cve_app_map[cve_id]["application"]
 #             result["version"] = cve_app_map[cve_id]["version"]
 #
-#     return {"results": filtered_results}  # Return filtered results with application info
-
-async def search_by_field(es_client, index_name, field, applications: List[Application], size=10000, max_results_per_app=5):
+#     # Remove duplicates based on CVE ID
+#     unique_results = []
+#     seen_ids = set()
+#
+#     for result in filtered_results:
+#         if result["id"] not in seen_ids:
+#             unique_results.append(result)
+#             seen_ids.add(result["id"])
+#     print(f"FINAL RESULTS BEING SENT BACK TO DJANGO ARE {unique_results}")
+#     return {"results": unique_results}  # Return unique results with application info
+async def search_by_field(es_client, index_name, field, applications: List[Application], size=10000,
+                          max_results_per_app=5):
     all_results = []  # Initialize a list to collect results
-
-    # Store a mapping of CVE ID to application information (app name, version)
-    cve_app_map = {}
+    cve_app_map = {}  # Mapping of CVE ID to application info
 
     for application in applications:
         app_name = application.extract_app_name()
         normalized_version = application.normalize_version()
 
         # Normalize the app name for flexible searching
-        normalized_app_name = app_name.replace(" ", "").lower()  # Removing spaces and lowercasing
-        normalized_app_name_split = normalized_app_name.split("service")  # Split on the word "service"
-
-        # Create a list of flexible search terms
-        flexible_search_terms = [normalized_app_name]  # Start with the normalized app name
+        normalized_app_name = app_name.replace(" ", "").lower()
+        normalized_app_name_split = normalized_app_name.split("service")
+        flexible_search_terms = [normalized_app_name]
 
         if len(normalized_app_name_split) > 1:
-            flexible_search_terms.append(normalized_app_name_split[0])  # Add the part before "service"
+            flexible_search_terms.append(normalized_app_name_split[0])
 
-        # Add wildcards for searching
         wildcard_search = f"*{normalized_app_name}*"
-
         query_body = {
             "query": {
                 "bool": {
                     "should": [
-                        # Match the exact name (case insensitive)
-                        {
-                            "match": {
-                                field: {
-                                    "query": app_name,
-                                    "operator": "and",
-                                }
-                            }
-                        },
-                        # Match variations
+                        {"match": {field: {"query": app_name, "operator": "and"}}},
                         {
                             "bool": {
                                 "should": [
-                                    {
-                                        "wildcard": {
-                                            field: {
-                                                "value": wildcard_search,
-                                                "boost": 2.0
-                                            }
-                                        }
-                                    },
+                                    {"wildcard": {field: {"value": wildcard_search, "boost": 2.0}}},
                                     *[
-                                        {
-                                            "match": {
-                                                field: {
-                                                    "query": term,
-                                                    "operator": "and",
-                                                }
-                                            }
-                                        } for term in flexible_search_terms
+                                        {"match": {field: {"query": term, "operator": "and"}}}
+                                        for term in flexible_search_terms
                                     ]
                                 ]
                             }
@@ -225,59 +206,53 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
 
         app_results = await search_documents(es_client, index_name, query_body, size)
 
-        # Ensure app_results has results before processing
         if "results" in app_results:
             cve_results = app_results["results"]
-
-            # Sort the CVE results by relevance or any other criterion
-            sorted_cve_results = sorted(cve_results, key=lambda x: x.get("relevance_score", 0), reverse=True)  # Placeholder for sorting
-
-            # Limit to a maximum of `max_results_per_app` per application
+            sorted_cve_results = sorted(cve_results, key=lambda x: x.get("relevance_score", 0), reverse=True)
             limited_cve_results = sorted_cve_results[:max_results_per_app]
 
             for item in limited_cve_results:
-                # Access the CVE object
                 cve = item.get("cve", {})
                 cve_id = cve.get("id", "Unknown ID")
-
-                # Find the English description
                 descriptions = cve.get("descriptions", [])
                 en_description = next((desc["value"] for desc in descriptions if desc["lang"] == "en"),
                                       "No description available")
 
-                # Append extracted data for the current application
+                # Extract CVSS score and severity if available
+                cvss_metric = cve.get("metrics", {}).get("cvssMetricV31", []) or cve.get("metrics", {}).get("cvssMetricV30", [])
+                cvss_score = cvss_metric[0]["cvssData"]["baseScore"] if cvss_metric else "No score available"
+                base_severity = cvss_metric[0]["cvssData"]["baseSeverity"] if cvss_metric else "No severity available"
+
                 all_results.append({
                     "id": cve_id,
-                    "description": en_description
+                    "description": en_description,
+                    "cvss_score": cvss_score,
+                    "base_severity": base_severity
                 })
 
-                # Save the app name and version associated with this CVE ID
                 cve_app_map[cve_id] = {
                     "application": app_name,
                     "version": normalized_version
                 }
 
-    # Use prompt_cves to filter the results
     cve_ids = prompt_cves(applications, all_results)
     filtered_results = [result for result in all_results if result["id"] in cve_ids]
 
-    # Append application name and version to the filtered results
-    for result in filtered_results:
-        cve_id = result["id"]
-        if cve_id in cve_app_map:
-            result["application"] = cve_app_map[cve_id]["application"]
-            result["version"] = cve_app_map[cve_id]["version"]
-
-    # Remove duplicates based on CVE ID
+    # Append application info and remove duplicates
     unique_results = []
     seen_ids = set()
-
     for result in filtered_results:
-        if result["id"] not in seen_ids:
+        cve_id = result["id"]
+        if cve_id not in seen_ids:
+            if cve_id in cve_app_map:
+                result["application"] = cve_app_map[cve_id]["application"]
+                result["version"] = cve_app_map[cve_id]["version"]
             unique_results.append(result)
-            seen_ids.add(result["id"])
-    print(f"FINAL RESULTS BEING SENT BACK TO DJANGO ARE {unique_results}")
+            seen_ids.add(cve_id)
+
     return {"results": unique_results}  # Return unique results with application info
+
+
 
 app = FastAPI()
 
