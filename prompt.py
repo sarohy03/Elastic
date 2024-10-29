@@ -39,7 +39,8 @@ def prompt_cves(products, cve_data):
                                           "'CVE': 'CVE-XXXX-number', 'Summary': 'Description of the CVE"
                                           " related to the exact version of the process.'}"},
             {"role": "user", "content": prompt}
-        ]
+        ],
+        temperature=0
     )
 
     # Extracting the content safely from the response
