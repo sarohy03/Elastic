@@ -15,7 +15,7 @@ print(f'AZURE_OPENAI_ENDPOINT: {AZURE_OPENAI_ENDPOINT}')
 
 client = AzureOpenAI(
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_version="2023-05-15",
+    api_version="2024-10-21",
     api_key=AZURE_OPENAI_KEY
 )
 
@@ -73,7 +73,7 @@ def prompt_cves(products, cve_data):
 
     # Extracting the content safely from the response
     response_content = response.choices[0].message.content
-    print("Raw response from OpenAI API:", response_content[:500])
+    print("Raw response from OpenAI API:.....")
 
     # Try parsing the response as JSON
     try:
