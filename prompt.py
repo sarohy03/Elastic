@@ -15,7 +15,8 @@ print(f'AZURE_OPENAI_ENDPOINT: {AZURE_OPENAI_ENDPOINT}')
 
 client = AzureOpenAI(
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_version="2024-10-21",
+    # api_version="2024-10-21",
+    api_version="2023-05-15",
     api_key=AZURE_OPENAI_KEY
 )
 

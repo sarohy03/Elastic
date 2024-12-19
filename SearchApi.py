@@ -133,7 +133,7 @@ app = FastAPI()
 async def root(data: ApplicationsPayload):
     print(f"Received search request with data: {data}")
     ELASTIC_ADDRESS = "http://localhost:9200"
-    # ELASTIC_ADDRESS = "https://baec-54-209-182-160.ngrok-free.app"
+    # ELASTIC_ADDRESS = "https://c45e-54-209-182-160.ngrok-free.app"
     INDEX_NAME = "interactions_index-6"
     es_client = Elasticsearch(hosts=[ELASTIC_ADDRESS])
     result = await search_by_field(es_client, INDEX_NAME, "cve.descriptions.value", data.applications)
