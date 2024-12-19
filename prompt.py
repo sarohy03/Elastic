@@ -67,7 +67,7 @@ def prompt_cves(products, cve_data):
                                           " related to the exact version of the process.'}"},
             {"role": "user", "content": prompt}
         ],
-        temperature=0  # Make the output deterministic
+        temperature=1  # Make the output deterministic
     )
 
     print("Received response from OpenAI API")
