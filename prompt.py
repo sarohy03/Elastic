@@ -74,7 +74,7 @@ def prompt_cves(products, cve_data):
 
     # Extracting the content safely from the response
     response_content = response.choices[0].message.content
-    print("Raw response from OpenAI API:", response_content)
+    print("Raw response from OpenAI API:", response)
 
     # Try parsing the response as JSON
     try:
