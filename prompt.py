@@ -24,35 +24,63 @@ def prompt_cves(products, cve_data):
     print(f"Number of CVEs in cve_data: {len(cve_data)}")
 
     prompt = f"""
-        You are tasked with reviewing a list of products with specific versions and matching them against CVE records. Your output must be **consistent** each time, with no variations in results for identical input data.
+            You are tasked with reviewing a list of products with specific versions and matching them against CVE records. Your output must be **consistent** each time, with no variations in results for identical input data.
 
-        ### Product List:
-        {products}
+            ### Product List:
+            {products}
 
-        ### CVE Data:
-        {cve_data}
+            ### CVE Data:
+            {cve_data}
 
-        **Instructions**:
-        1. **Exact Matching of Product Name and Version**:
-           - Only include CVEs where the **product name** and **version** **explicitly appear** in the CVE description.
-           - The **version** must be **exactly** as listed for the product. If the version range is mentioned, the CVE should only be included if the version **falls within the range**.
-           - If a CVE mentions a **version range**, such as "prior to version X" or "above version Y", include the CVE **only if the product version** explicitly falls within that range.
-           - Do **not infer**, assume, or generalize the matching process. If the version or product name is **not directly mentioned**, do not include the CVE.
+            ### **Enhanced Instructions**:
 
-        2. **Consistency in Results**:
-           - Your output must **always** be consistent when the same input is provided. If the product list and CVE data are the same, the CVE IDs returned should **always** be identical, regardless of minor phrasing differences in the CVE description.
-           - If a CVE appears multiple times in the input, ensure it is **only listed once** in the final output.
+            1. **Flexible and Exact Matching**:
+               - **Exact Match**:
+                 - Include CVEs where the **product name** and **version** **exactly appear** in the CVE description.
+               - **Minor Version Variations**:
+                 - If a CVE mentions a version pattern like `2.47.x` and your product version is `2.47.0`, consider it a match.
+                 - Similarly, for `3.13.150.x` and `3.13.150.0`.
+               - **Inclusive Ranges**:
+                 - If a CVE mentions "prior to version X," include it only if your product version is **less than X**.
+                 - If a CVE specifies a range like "versions X to Y," include it only if your product version **falls within** that range.
 
-        3. **Handling of Ambiguous Cases**:
-           - If a product name or version is mentioned **ambiguously** (e.g., "versions 2.x" or "prior to version"), exclude that CVE.
-           - If the version is not mentioned at all, exclude that CVE unless the CVE explicitly matches the version range in the description.
+            2. **Product Name Variations and Synonyms**:
+               - **Standardize Names**:
+                 - Normalize product names to account for common synonyms and abbreviations.
+                   - Example: 
+                     - `microsoft visual c++ 2019 x64 minimum runtime - 14` can be matched with `Microsoft Visual C++ 2019`, `Visual C++ 2019 Runtime`, etc.
+                     - `python 3 executables (64-bit)` can be matched with `Python 3.x`, `Python3 Executables`, etc.
+               - **Use Regex for Pattern Matching**:
+                 - Implement regex patterns to capture variations in product naming and version formatting.
+                   - Example Regex for Python 3 executables:
+                     - r'python\s*3(?:\.\d+){0, 3}\s*(?:executables|core interpreter|pip bootstrap|standard library)'
 
-        4. **Final Output**:
-           - Return only the **CVE IDs** that match exactly to the products and versions in the list.
-           - Each CVE should appear **only once** in the output, even if it is mentioned multiple times in the CVE list.
+            3. **Component and Module Matching**:
+               - **Specific Components**:
+                 - Ensure that CVEs targeting specific components or modules (e.g., `python 3 pip bootstrap`) are matched appropriately.
+               - **Granular Matching**:
+                 - If a CVE affects only a sub-component, ensure that the main product version still qualifies the CVE.
 
-        **Return only the list of matching CVE IDs. Your response must always be identical if the input data is unchanged.**
-    """
+            4. **Avoid Ambiguous Matches**:
+               - **Exclude Ambiguity**:
+                 - Do not include CVEs that mention ambiguous version patterns (e.g., "versions 2.x" without specific range details).
+               - **Clear Boundaries**:
+                 - Only include CVEs where the product version clearly falls within the affected range as per the CVE description.
+
+            5. **De-duplicate CVE IDs**:
+               - **Unique Listings**:
+                 - Ensure each CVE ID appears only once in the final output, even if it matches multiple products or is listed multiple times in the CVE data.
+
+            6. **Consistency and Repeatability**:
+               - **Deterministic Output**:
+                 - The matching process should yield the same results for identical inputs every time, regardless of minor differences in CVE descriptions.
+
+            7. **Final Output Format**:
+               - **List of CVE IDs**:
+                 - Return only the **CVE IDs** that match the products and versions.
+               - **JSON Array**:
+                 - Format the output as a JSON array for structured representation.
+            """
 
     print("Sending request to OpenAI API...")
     response = client.chat.completions.create(
