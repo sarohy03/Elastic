@@ -4,20 +4,18 @@ import os
 import re
 
 from dotenv import load_dotenv
-from openai import AzureOpenAI
+from openai import OpenAI
 
 load_dotenv()
 
-AZURE_OPENAI_ENDPOINT = os.environ.get('AZURE_OPENAI_ENDPOINT')
-AZURE_OPENAI_KEY = os.environ.get('AZURE_OPENAI_KEY')
-AZURE_OPENAI_DEPLOYMENT_NAME = os.environ.get('AZURE_OPENAI_DEPLOYMENT_NAME')
-print(f'AZURE_OPENAI_ENDPOINT: {AZURE_OPENAI_ENDPOINT}')
+OPENAI_ENDPOINT = os.environ.get('OPENAI_ENDPOINT')
+OPENAI_KEY = os.environ.get('OPENAI_KEY')
+OPENAI_DEPLOYMENT_NAME = os.environ.get('OPENAI_DEPLOYMENT_NAME')
+print(f'OPENAI_ENDPOINT: {OPENAI_ENDPOINT}')
 
-client = AzureOpenAI(
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    # api_version="2024-10-21",
-    api_version="2023-05-15",
-    api_key=AZURE_OPENAI_KEY
+client = OpenAI(
+    base_url=OPENAI_ENDPOINT,
+    api_key=OPENAI_KEY,
 )
 
 
@@ -54,17 +52,16 @@ def prompt_cves(products, cve_data):
            - Each CVE should appear **only once** in the output, even if it is mentioned multiple times in the CVE list.
 
         **Return only the list of matching CVE IDs. Your response must always be identical if the input data is unchanged.**
-
     """
 
     print("Sending request to OpenAI API...")
     response = client.chat.completions.create(
-        model=AZURE_OPENAI_DEPLOYMENT_NAME,
+        model=OPENAI_DEPLOYMENT_NAME,
         messages=[
-            {"role": "system", "content": "You are a NVD DATABASE CRAWLER. Your response should strictly follow the"
-                                          " structure: CVE : {'application': 'process_name','version':'process_version',"
-                                          "'CVE': 'CVE-XXXX-number', 'Summary': 'Description of the CVE"
-                                          " related to the exact version of the process.'}"},
+            # {"role": "system", "content": "You are a NVD DATABASE CRAWLER. Your response should strictly follow the"
+            #                               " structure: CVE : {'application': 'process_name','version':'process_version',"
+            #                               "'CVE': 'CVE-XXXX-number', 'Summary': 'Description of the CVE"
+            #                               " related to the exact version of the process.'}"},
             {"role": "user", "content": prompt}
         ],
         temperature=1  # Make the output deterministic
