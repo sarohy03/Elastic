@@ -107,7 +107,7 @@ async def search_by_field(es_client, index_name, field, applications: List[Appli
                 }
 
     print(f"Sending results for filtering to prompt_cves: {all_results}")
-    cve_ids = prompt_cves(applications, all_results)
+    cve_ids = await prompt_cves(applications, all_results)
     filtered_results = [result for result in all_results if result["id"] in cve_ids]
 
     # Append application info and remove duplicates
