@@ -116,7 +116,7 @@
 #     print(f"Extracted CVE IDs: {cve_ids}")
 #
 #     return cve_ids
-# import asyncio
+import asyncio
 # # import json
 # # import os
 # # import re
