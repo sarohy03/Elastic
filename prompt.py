@@ -1,6 +1,5 @@
 import asyncio
 
-
 # Mock data for products (apps) and CVEs
 mock_apps = [
     {"app": "git", "version": "2.46.0"},
@@ -499,11 +498,8 @@ async def prompt_cves(products, cve_data):
 
     print(f"Returning the highest result with {highest_cve_count} CVEs.")
     return highest_cve_ids
-    # return cve_ids
 
 
-#
-#
 async def main():
     seen_cve_ids = set()
     unique_cve_data = []
